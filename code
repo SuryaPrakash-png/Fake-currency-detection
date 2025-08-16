@@ -1,0 +1,78 @@
+import cv2
+import numpy as np
+
+def preprocess_image(image_path):
+    # Load the image
+    img = cv2.imread(image_path)
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Apply Gaussian blur
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    return img, gray, blurred
+
+def detect_watermark(gray):
+    # Adaptive threshold to highlight watermarks
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+    # Find contours
+    contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for contour in contours:
+        if cv2.contourArea(contour) > 1000:  # Adjust threshold based on currency size
+            return True
+    return False
+
+def detect_security_thread(gray):
+    # Edge detection
+    edges = cv2.Canny(gray, 50, 150)
+    # Find contours
+    contours, _ = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        aspect_ratio = h / float(w)
+        if aspect_ratio > 5:  # Adjust ratio based on security thread characteristics
+            return True
+    return False
+
+def detect_alignment_pattern(img):
+    # Convert to HSV
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    # Define the color range for alignment patterns (example: green color)
+    lower_green = np.array([40, 40, 40])
+    upper_green = np.array([80, 255, 255])
+    mask = cv2.inRange(hsv, lower_green, upper_green)
+    # Find contours
+    contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for contour in contours:
+        if cv2.contourArea(contour) > 500:  # Adjust threshold based on pattern size
+            return True
+    return False
+
+def detect_fake_currency(image_path):
+    img, gray, blurred = preprocess_image(image_path)
+    
+    watermark_detected = detect_watermark(gray)
+    security_thread_detected = detect_security_thread(gray)
+    alignment_pattern_detected = detect_alignment_pattern(img)
+
+    if watermark_detected:
+        print("Watermark detected")
+    else:
+        print("Watermark not detected")
+
+    if security_thread_detected:
+        print("Security thread detected")
+    else:
+        print("Security thread not detected")
+
+    if alignment_pattern_detected:
+        print("Alignment pattern detected")
+    else:
+        print("Alignment pattern not detected")
+
+    if watermark_detected and security_thread_detected and alignment_pattern_detected:
+        print("Currency appears to be genuine")
+    else:
+        print("Currency appears to be fake")
+
+# Replace 'currency_image.jpg' with the path to your currency image
+detect_fake_currency('notef1.jpg')
+# Display the result
